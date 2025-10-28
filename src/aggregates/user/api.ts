@@ -1,33 +1,24 @@
-/**
- * IMPORTS
- */
-import {execute} from '../execute';
-import * as commands from '../user/commands';
-import * as handlers from '../user/handlers';
+import { supabase } from "../../lib/supabaseClient";
+import Store from "../../store";
 
+export async function login(email: string, password: string) {
+  // show loading in redux
+  Store.dispatch.user.startAuthorizing();
 
-/**
- * CODE
- */
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
 
-/**
- * I am an API to login user.
- *
- * :param username: username
- * :param password: user password
- *
- * :returns: promise with nothing
- */
-async function login (username: string,
-                      password: string): Promise<void>
-{
-    await execute(commands.login(username, password), handlers.login);
+  if (error) {
+    // set login error state in redux
+    Store.dispatch.user.setLoginError(error.message);
+    Store.dispatch.user.stopAuthorizing();
+    return;
+  }
+
+  // success → store user + authorized state
+  Store.dispatch.user.setUser(data.user);
+  Store.dispatch.user.setAuthorized(true);
+  Store.dispatch.user.stopAuthorizing();
 }
-
-
-/**
- * EXPORTS
- */
-export {
-    login
-};
